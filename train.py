@@ -1,4 +1,4 @@
-from utils.mydataset import MyDataset
+from utils.mydataset_wayexists import MyDataset
 from model.networks import Encoder, Decoder
 import torch
 import torch.nn as nn
@@ -42,6 +42,8 @@ def main():
         *encoder.parameters(),
         *decoder.parameters()
     ], lr=0.0001)
+
+    cnt = 0
     
     for epoch in range(100):  # loop over the dataset multiple times
 
@@ -53,7 +55,9 @@ def main():
 
         for i, train_item in enumerate(tqdm(train_loader, 0)):
             # get the inputs; data is a list of [inputs, labels]
-            print('speed_test')
+            # print('speed_test')
+
+            start_time = time.time()
             anchor = train_item['anchor'].to(device)
             h_input = train_item['anchor_heatmap'].to(device)
             f_input = train_item['anchor_flow'].to(device)
@@ -61,37 +65,48 @@ def main():
             h_sp_input = train_item['sp_heatmap'].to(device)
             f_sp_input = train_item['sp_flow'].to(device)
             class_num = train_item['class'].to(device)
-            print('Load train data to GPU')
+            print('Load train data to GPU', time.time() - start_time)
             # print(anchor.size())
             # print(h_input.size())
             # print(f_input.size())
             # print(class_num, class_num.size())
 
+            start_time = time.time()
             motion_feature = encoder(h_input,f_input)
             motion_sp_feature = sp_encoder(h_sp_input, f_sp_input)
             mean_motion_feature = motion_feature.mean(dim=1)
             decoded = decoder(motion_feature)
-            print('Model foward finish')
+            print('Model foward finish', time.time() - start_time)
 
             optimizer.zero_grad()
 
+            start_time = time.time()
             mse_loss = mse(anchor, decoded)
             cE_loss = cE(mean_motion_feature, class_num)
             dtw_loss = frame_matching_loss(motion_feature, motion_sp_feature)
             loss = mse_loss + cE_loss + dtw_loss
             loss.backward()
             optimizer.step()
+            print('loss test', time.time() - start_time)
 
+
+            start_time = time.time()
             #########################
             with torch.no_grad():
                 for param_a, param_sp in zip(encoder.parameters(), sp_encoder.parameters()):
                     param_sp.data = param_sp.data * m + param_a.data * (1. - m)
             #########################
+            print('update test', time.time() - start_time)
+            # total_mse_loss += mse_loss
+            # total_cE_loss += cE_loss
+            # total_dtw_loss += dtw_loss
+            # total_loss += loss
+            cnt += 1
 
-            total_mse_loss += mse_loss
-            total_cE_loss += cE_loss
-            total_dtw_loss += dtw_loss
-            total_loss += loss
+            writer.add_scalar("total_Loss/train", loss, cnt)
+            writer.add_scalar("mse_Loss/train", mse_loss, cnt)
+            writer.add_scalar("cE_Loss/train", cE_loss, cnt)
+            writer.add_scalar("dtw_Loss/train", dtw_loss, cnt)
             
             # print statistics
             # running_loss += loss.item()
@@ -109,16 +124,16 @@ def main():
 
 
         print('end of epoch', epoch)
-        writer.add_scalar("total_Loss/train", total_loss/len(train_loader), epoch)
-        writer.add_scalar("total_mse_Loss/train", total_mse_loss/len(train_loader), epoch)
-        writer.add_scalar("total_cE_Loss/train", total_cE_loss/len(train_loader), epoch)
-        writer.add_scalar("total_dtw_Loss/train", total_dtw_loss/len(train_loader), epoch)
+        # writer.add_scalar("total_Loss/train", total_loss/len(train_loader), epoch)
+        # writer.add_scalar("total_mse_Loss/train", total_mse_loss/len(train_loader), epoch)
+        # writer.add_scalar("total_cE_Loss/train", total_cE_loss/len(train_loader), epoch)
+        # writer.add_scalar("total_dtw_Loss/train", total_dtw_loss/len(train_loader), epoch)
     
     # if (epoch) % 9 == 0:
     #     now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     #     save_fn = f'/data/onwood/sba_project_2024_2/model_{epoch}_{now}.pt'
     #     torch.save(encoder,save_fn)
-    
+
     now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     save_fn = f'/data/onwood/sba_project_2024_2/model_{epoch}_{now}.pt'
     torch.save(encoder,save_fn)
