@@ -118,7 +118,7 @@ for i in tqdm.tqdm(range(len(total_dir))):
 
     key_fn = total_dir[i].split('/')[-1].split('_')[0]
     action = key_fn[key_fn.find('A'):]
-    action_label = torch.tensor(label_dic[action])
+    action_label = label_dic[action]
     
     save_file_path = total_dir[i].replace('adjusted_100_dataset','/data/onwood/ahf_100').replace('.json','.npz')
 
