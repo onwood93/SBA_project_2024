@@ -10,6 +10,14 @@ from copy import deepcopy
 from model.losses import frame_matching_loss
 from datetime import datetime
 
+tcp = 'tcp://166.104.246.203'
+ngpus_per_node = 4
+process_id = 3
+torch.distributed.init_process_group(backend='nccl',
+                            init_method=tcp,
+                            world_size=ngpus_per_node,
+                            rank=process_id)
+
 writer = SummaryWriter()
 
 def main():
@@ -115,10 +123,10 @@ def main():
         writer.add_scalar("total_dtw_Loss/train", total_dtw_loss/len(train_loader), epoch)
     
     # if (epoch) % 9 == 0:
-    #     now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    #     save_fn = f'/data/onwood/sba_project_2024_2/model_{epoch}_{now}.pt'
-    #     torch.save(encoder,save_fn)
-    
+        # now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+        # save_fn = f'/data/onwood/sba_project_2024_2/model_{epoch}_{now}.pt'
+        # torch.save(encoder,save_fn)
+
     now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     save_fn = f'/data/onwood/sba_project_2024_2/model_{epoch}_{now}.pt'
     torch.save(encoder,save_fn)

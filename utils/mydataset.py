@@ -437,7 +437,6 @@ class MyDataset(Dataset):
         # min - margin > 0 처리하면 될 것 같음
         crop_heatmap = torch.tensor(heatmaps[:,:,x_min_margin:origin_x_max+margin,y_min_margin:origin_y_max+margin], dtype=torch.float32)
         resized_crop_heatmap = ttF.resize(crop_heatmap, (200,100))
-
         
         crop_flow = torch.tensor(flows[:,:,x_min_margin:origin_x_max+margin,y_min_margin:origin_y_max+margin], dtype=torch.float32)
         resized_crop_flow = ttF.resize(crop_flow, (200,100))
